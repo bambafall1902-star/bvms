@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Chat</title>
+</head>
+<body>
+  <h1>Le site fonctionne</h1>
+
+  <input id="msg" placeholder="Écris bonjour" />
+  <button onclick="send()">Envoyer</button>
+
+  <p id="rep"></p>
+
+  <script>
+    function send() {
+      fetch("/api/chat")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("rep").innerText = data.reply;
+        })
+        .catch(() => {
+          document.getElementById("rep").innerText = "Erreur appel API";
+        });
+    }
+  </script>
+</body>
+</html>
