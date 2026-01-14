@@ -2,52 +2,26 @@ export const config = { runtime: "edge" };
 
 export default async function handler(req) {
   try {
-    const { message } = await req.json();
-
-    const groqResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
+    const res = await fetch(
+      "https://api.groq.com/openai/v1/models",
       {
-        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "llama3-70b-8192",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Tu es un assistant de service client professionnel. Réponds clairement dans la langue du client."
-            },
-            {
-              role: "user",
-              content: message || "Bonjour"
-            }
-          ],
-          temperature: 0.3
-        }),
       }
     );
 
-    const data = await groqResponse.json();
-
-    if (!data.choices || !data.choices[0]) {
-      return new Response(
-        JSON.stringify({ reply: "❌ Réponse IA vide" }),
-        { status: 200 }
-      );
-    }
+    const data = await res.json();
 
     return new Response(
-      JSON.stringify({ reply: data.choices[0].message.content }),
+      JSON.stringify(data),
       { status: 200 }
     );
-
-  } catch (error) {
+  } catch (e) {
     return new Response(
-      JSON.stringify({ reply: "❌ Erreur serveur IA" }),
+      JSON.stringify({ error: "Erreur appel Groq" }),
       { status: 500 }
     );
   }
 }
+  
