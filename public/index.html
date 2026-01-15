@@ -3,104 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <title>Chatbot IA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .chatbox {
-      background: #fff;
-      width: 100%;
-      max-width: 400px;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-
-    .msg {
-      margin-bottom: 8px;
-    }
-
-    .user {
-      text-align: right;
-      color: #0070f3;
-    }
-
-    .bot {
-      text-align: left;
-      color: #333;
-    }
-
-    input {
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      width: 100%;
-      margin-bottom: 5px;
-    }
-
-    button {
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      background: #0070f3;
-      color: #fff;
-      cursor: pointer;
-    }
-  </style>
 </head>
-
 <body>
-  <div class="chatbox">
-    <div class="messages" id="messages">
-      <div class="msg bot">🤖 Bonjour ! Pose-moi une question.</div>
-    </div>
+  <h2>Chatbot IA</h2>
 
-    <input id="input" placeholder="Écris ton message..." />
-    <button onclick="sendMessage()">Envoyer</button>
-  </div>
+  <input id="msg" placeholder="Écris un message" />
+  <button onclick="send()">Envoyer</button>
+
+  <p id="rep"></p>
 
   <script>
-    async function sendMessage() {
-      const input = document.getElementById("input");
-      const text = input.value.trim();
-      if (!text) return;
+    async function send() {
+      const text = document.getElementById("msg").value;
 
-      const messages = document.getElementById("messages");
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
 
-      messages.innerHTML += `<div class="msg user">${text}</div>`;
-      input.value = "";
-
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-
-        const data = await res.json();
-
-        messages.innerHTML += `<div class="msg bot">${data.reply}</div>`;
-        messages.scrollTop = messages.scrollHeight;
-
-      } catch (e) {
-        messages.innerHTML += `<div class="msg bot">❌ Erreur serveur</div>`;
-      }
+      const data = await res.json();
+      document.getElementById("rep").innerText = data.reply;
     }
   </script>
 </body>
