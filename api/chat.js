@@ -2,56 +2,52 @@ export const config = { runtime: "edge" };
 
 export default async function handler(req) {
   try {
-    const body = await req.json();
-    const message = body.message;
+    const { message } = await req.json();
 
     if (!message) {
       return new Response(
-        JSON.stringify({ reply: "Pouvez-vous préciser votre demande ?" }),
+        JSON.stringify({ reply: "Veuillez écrire un message." }),
         { status: 200 }
       );
     }
 
     const prompt = `
-### Instruction:
-Tu es un assistant professionnel de service client, similaire à celui d’Amazon.
-Tu réponds toujours clairement, poliment et utilement.
+Tu es un assistant professionnel de service client.
+Tu réponds clairement, poliment et utilement.
 Tu comprends toutes les langues.
-Tu aides le client même si sa question est simple ou mal formulée.
-Ne dis jamais "je n’ai pas compris".
-Donne toujours une réponse utile.
+Ne dis jamais que tu ne comprends pas.
 
-### Client:
-${message}
-
-### Réponse:
+Client: ${message}
+Assistant:
 `;
 
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+    const hfResponse = await fetch(
+      "https://api-inference.huggingface.co/models/google/flan-t5-large",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.HF_API_KEY}`,
+          "Authorization": `Bearer ${process.env.HF_API_KEY}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           inputs: prompt,
-          parameters: {
-            max_new_tokens: 200,
-            temperature: 0.4,
-            return_full_text: false
-          }
-        }),
+          options: { wait_for_model: true }
+        })
       }
     );
 
-    const data = await response.json();
+    const data = await hfResponse.json();
 
-    let reply = "Je suis là pour vous aider. Pouvez-vous préciser ?";
+    let reply = "Je suis là pour vous aider.";
 
     if (Array.isArray(data) && data[0]?.generated_text) {
-      reply = data[0].generated_text.trim();
+      reply = data[0].generated_text;
+    } 
+    else if (data?.generated_text) {
+      reply = data.generated_text;
+    } 
+    else if (data?.error) {
+      reply = "Le service IA est temporairement indisponible.";
     }
 
     return new Response(
@@ -59,9 +55,9 @@ ${message}
       { status: 200 }
     );
 
-  } catch (error) {
+  } catch (err) {
     return new Response(
-      JSON.stringify({ reply: "Erreur serveur IA" }),
+      JSON.stringify({ reply: "Erreur serveur IA." }),
       { status: 500 }
     );
   }
