@@ -2,62 +2,42 @@ export const config = { runtime: "edge" };
 
 export default async function handler(req) {
   try {
-    const { message } = await req.json();
+    const body = await req.json();
+    const message = body.message || "Dis bonjour";
 
-    if (!message) {
-      return new Response(
-        JSON.stringify({ reply: "Veuillez écrire un message." }),
-        { status: 200 }
-      );
-    }
-
-    const prompt = `
-Tu es un assistant professionnel de service client.
-Tu réponds clairement, poliment et utilement.
-Tu comprends toutes les langues.
-Ne dis jamais que tu ne comprends pas.
-
-Client: ${message}
-Assistant:
-`;
-
-    const hfResponse = await fetch(
-      "https://api-inference.huggingface.co/models/google/flan-t5-large",
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.HF_API_KEY}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          inputs: prompt,
-          options: { wait_for_model: true }
+          model: "llama3-8b-8192",
+          messages: [
+            { role: "user", content: message }
+          ]
         })
       }
     );
 
-    const data = await hfResponse.json();
-
-    let reply = "Je suis là pour vous aider.";
-
-    if (Array.isArray(data) && data[0]?.generated_text) {
-      reply = data[0].generated_text;
-    } 
-    else if (data?.generated_text) {
-      reply = data.generated_text;
-    } 
-    else if (data?.error) {
-      reply = "Le service IA est temporairement indisponible.";
-    }
+    const data = await response.json();
 
     return new Response(
-      JSON.stringify({ reply }),
+      JSON.stringify({
+        ok: true,
+        groq_response: data
+      }),
       { status: 200 }
     );
 
-  } catch (err) {
+  } catch (e) {
     return new Response(
-      JSON.stringify({ reply: "Erreur serveur IA." }),
+      JSON.stringify({
+        ok: false,
+        error: e.message
+      }),
       { status: 500 }
     );
   }
