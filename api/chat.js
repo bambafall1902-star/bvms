@@ -2,7 +2,8 @@ export const config = { runtime: "edge" };
 
 export default async function handler(req) {
   try {
-    const { message } = await req.json();
+    const body = await req.json();
+    const message = body?.message;
 
     if (!message) {
       return new Response(
@@ -24,24 +25,49 @@ export default async function handler(req) {
           messages: [
             {
               role: "system",
-              content: "Tu es un assistant professionnel de service client, poli, clair, multilingue."
+              content: "Tu es un assistant professionnel de service client, poli, clair, multilingue. Tu aides toujours le client."
             },
             {
               role: "user",
               content: message
             }
-          ]
+          ],
+          temperature: 0.5
         })
       }
     );
 
-    const data = await response.json();
+    const rawText = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      return new Response(
+        JSON.stringify({ reply: "Réponse IA illisible.", debug: rawText }),
+        { status: 200 }
+      );
+    }
+
+    // 🔍 DEBUG IMPORTANT
+    if (data?.error) {
+      return new Response(
+        JSON.stringify({
+          reply: "Erreur IA.",
+          debug: data.error
+        }),
+        { status: 200 }
+      );
+    }
 
     const reply = data?.choices?.[0]?.message?.content;
 
     if (!reply) {
       return new Response(
-        JSON.stringify({ reply: "L’IA n’a pas répondu." }),
+        JSON.stringify({
+          reply: "L’IA n’a pas répondu.",
+          debug: data
+        }),
         { status: 200 }
       );
     }
@@ -53,7 +79,10 @@ export default async function handler(req) {
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ reply: "Erreur serveur IA." }),
+      JSON.stringify({
+        reply: "Erreur serveur IA.",
+        debug: err.message
+      }),
       { status: 500 }
     );
   }
