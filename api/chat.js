@@ -7,33 +7,24 @@ export default async function handler(req) {
 
     if (!message) {
       return new Response(
-        JSON.stringify({ reply: "Message vide reçu." }),
+        JSON.stringify({ reply: "Pouvez-vous préciser votre demande ?" }),
         { status: 200 }
       );
     }
 
     const prompt = `
-Tu es un assistant IA de service client de niveau entreprise, similaire aux assistants utilisés par Amazon.
+### Instruction:
+Tu es un assistant professionnel de service client, similaire à celui d’Amazon.
+Tu réponds toujours clairement, poliment et utilement.
+Tu comprends toutes les langues.
+Tu aides le client même si sa question est simple ou mal formulée.
+Ne dis jamais "je n’ai pas compris".
+Donne toujours une réponse utile.
 
-Règles STRICTES :
-- Tu es poli, calme, professionnel et rassurant.
-- Tu réponds clairement, avec des phrases simples et précises.
-- Tu comprends et réponds automatiquement dans la langue du client.
-- Tu aides le client même si sa question est mal formulée.
-- Tu proposes des solutions concrètes.
-- Tu ne dis jamais "je ne sais pas" sans proposer une alternative.
-- Tu peux expliquer des produits, prix, commandes, livraisons, horaires, remboursements, problèmes techniques et réclamations.
-- Tu poses UNE question de clarification seulement si c’est nécessaire.
-- Tu ne révèles jamais que tu es une IA ou un modèle.
+### Client:
+${message}
 
-Style :
-- Ton ton est professionnel, chaleureux et confiant.
-- Tes réponses sont structurées et faciles à lire.
-- Tu ne fais pas de réponses trop longues.
-- Tu peux utiliser des listes quand c’est utile.
-
-Client : ${message}
-Assistant :
+### Réponse:
 `;
 
     const response = await fetch(
@@ -46,16 +37,21 @@ Assistant :
         },
         body: JSON.stringify({
           inputs: prompt,
+          parameters: {
+            max_new_tokens: 200,
+            temperature: 0.4,
+            return_full_text: false
+          }
         }),
       }
     );
 
     const data = await response.json();
 
-    let reply = "Je n'ai pas compris votre demande.";
+    let reply = "Je suis là pour vous aider. Pouvez-vous préciser ?";
 
     if (Array.isArray(data) && data[0]?.generated_text) {
-      reply = data[0].generated_text.split("Assistant :").pop().trim();
+      reply = data[0].generated_text.trim();
     }
 
     return new Response(
@@ -65,7 +61,7 @@ Assistant :
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ reply: "Erreur serveur IA." }),
+      JSON.stringify({ reply: "Erreur serveur IA" }),
       { status: 500 }
     );
   }
